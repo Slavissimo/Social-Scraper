@@ -1,12 +1,29 @@
-const API_BASE = '/api'
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api'
 
 export async function scrapeUrl(url) {
-  const res = await fetch(`${API_BASE}/scrape`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
-  })
-  const data = await res.json()
+  let res
+  try {
+    res = await fetch(`${API_BASE}/scrape`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+  } catch (e) {
+    throw new Error('Could not reach the backend. Is the Python server running on port 8000?')
+  }
+
+  let data
+  try {
+    data = await res.json()
+  } catch (e) {
+    throw new Error(
+      `Server error ${res.status}: backend returned an empty or invalid response. ` +
+      `Check the terminal running uvicorn for the full traceback.`
+    )
+  }
+
   if (!res.ok) {
     throw new Error(data.detail || `Server error: ${res.status}`)
   }
