@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useScraper } from './hooks/useScraper'
 import { UrlInput } from './components/UrlInput'
 import { RedditResults } from './components/RedditResults'
+import { YouTubeResults } from './components/YouTubeResults'
 import { RestrictedResults } from './components/RestrictedResults'
 import { PlatformStatus } from './components/PlatformStatus'
 
@@ -40,8 +41,8 @@ export default function App() {
           <PlatformStatus />
           <div style={styles.sidebarNote}>
             <p style={styles.noteText}>
-              Enter any public post URL from a supported platform. Reddit posts are fully scraped
-              including nested comments. Other platforms return architecture documentation.
+              Enter any public post URL from a supported platform. Reddit and YouTube are
+              fully scraped. Facebook and Instagram return architecture documentation.
             </p>
           </div>
         </aside>
@@ -91,6 +92,9 @@ export default function App() {
               {data.status === 'success' && data.platform === 'reddit' && (
                 <RedditResults data={data} />
               )}
+              {data.status === 'success' && data.platform === 'youtube' && (
+                <YouTubeResults data={data} />
+              )}
               {data.status === 'not_implemented' && (
                 <RestrictedResults data={data} />
               )}
@@ -105,13 +109,13 @@ export default function App() {
                   platform="Reddit"
                   color="#ff4500"
                   status="Fully supported"
-                  desc="Scrapes post metadata, all comments with threading, author info, and scores."
+                  desc="Scrapes post metadata, all comments with threading, author info, and scores. No API key needed."
                 />
                 <EmptyCard
-                  platform="X (Twitter)"
-                  color="#1d9bf0"
-                  status="API stub"
-                  desc="Returns architecture documentation. Full implementation requires paid API access."
+                  platform="YouTube"
+                  color="#ff0000"
+                  status="Fully supported"
+                  desc="Scrapes video metadata and top 100 comments with replies via YouTube Data API v3. Free API key required."
                 />
                 <EmptyCard
                   platform="Facebook"

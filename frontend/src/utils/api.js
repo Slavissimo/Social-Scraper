@@ -49,15 +49,15 @@ export function formatScore(score) {
 export function detectPlatform(url) {
   const lower = url.toLowerCase()
   if (lower.includes('reddit.com')) return 'reddit'
-  if (lower.includes('twitter.com') || lower.includes('x.com')) return 'x'
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube'
   if (lower.includes('facebook.com') || lower.includes('fb.com')) return 'facebook'
   if (lower.includes('instagram.com')) return 'instagram'
   return null
 }
 
 export const PLATFORM_META = {
-  reddit: { label: 'Reddit', color: '#ff4500', status: 'supported' },
-  x: { label: 'X (Twitter)', color: '#1d9bf0', status: 'restricted' },
-  facebook: { label: 'Facebook', color: '#1877f2', status: 'restricted' },
+  reddit:    { label: 'Reddit',    color: '#ff4500', status: 'supported' },
+  youtube:   { label: 'YouTube',   color: '#ff0000', status: 'supported' },
+  facebook:  { label: 'Facebook',  color: '#1877f2', status: 'restricted' },
   instagram: { label: 'Instagram', color: '#e1306c', status: 'restricted' },
 }

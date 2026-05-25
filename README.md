@@ -1,70 +1,34 @@
 # Social Comment Scraper
-**Bachelor Thesis Demo Project**
 
-A full-stack web application that scrapes comments from social media posts.
-Built with **React** (frontend) + **FastAPI** (backend).
+Bachelor Thesis Demo — scrapes public social media comments for analysis.
 
----
-
-## Platform Support
+## Supported Platforms
 
 | Platform  | Status        | Method                          |
 |-----------|---------------|---------------------------------|
-| Reddit    | ✅ Full        | Public JSON API (no key needed) |
-| X/Twitter | ⚠️ Stub        | Paid API required ($100+/mo)    |
-| Facebook  | ⚠️ Stub        | Meta Graph API + app review     |
-| Instagram | ⚠️ Stub        | Meta Graph API + app review     |
+| Reddit    | ✅ Full        | Public JSON API — no key needed |
+| YouTube   | ✅ Full        | YouTube Data API v3 — free key  |
+| Facebook  | ⚠️ Stub        | Requires Meta Graph API + App Review |
+| Instagram | ⚠️ Stub        | Requires Meta Graph API + App Review |
 
----
+## Setup
 
-## Project Structure
-
-```
-social-scraper/
-├── backend/
-│   ├── main.py                    # FastAPI app, routing, platform detection
-│   ├── requirements.txt
-│   └── scrapers/
-│       ├── reddit.py              # Full Reddit scraper (public JSON API)
-│       └── platform_stubs.py     # Structured stubs for restricted platforms
-│
-└── frontend/
-    ├── src/
-    │   ├── App.jsx                # Main layout and state
-    │   ├── components/
-    │   │   ├── UrlInput.jsx       # URL input with live platform detection
-    │   │   ├── RedditResults.jsx  # Comment tree, filters, export
-    │   │   ├── RestrictedResults.jsx  # Architecture docs for unsupported platforms
-    │   │   └── PlatformStatus.jsx # Sidebar status panel
-    │   ├── hooks/
-    │   │   └── useScraper.js      # Async scraping hook
-    │   └── utils/
-    │       └── api.js             # API calls and helpers
-    └── vite.config.js             # Vite proxy → backend
-```
-
----
-
-## Setup & Running
-
-### 1. Backend (Pop!_OS + pipx)
+### Backend
 
 ```bash
-# Install uvicorn as a pipx app (once)
-pipx install uvicorn[standard]
-
-# Inject the backend dependencies into that environment (once)
-pipx inject uvicorn fastapi httpx pydantic
-
-# Run the server
 cd backend
-pipx run --spec uvicorn[standard] uvicorn main:app --reload --port 8000
+pip install -r requirements.txt
+
+# Configure YouTube API key
+cp .env.example .env
+# Edit .env and add your YOUTUBE_API_KEY
+# Get a free key at https://console.cloud.google.com/
+# → Enable "YouTube Data API v3" → Create credentials → API key
+
+uvicorn main:app --reload --port 8000
 ```
 
-API will be available at: `http://localhost:8000`  
-Interactive docs: `http://localhost:8000/docs`
-
-### 2. Frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -72,63 +36,64 @@ npm install
 npm run dev
 ```
 
-App will open at: `http://localhost:5173`
+Open http://localhost:5173
 
----
+## Getting a YouTube API Key (free)
 
-## API Endpoints
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or use an existing one)
+3. Navigate to **APIs & Services → Library**
+4. Search for **"YouTube Data API v3"** and enable it
+5. Go to **APIs & Services → Credentials → Create Credentials → API key**
+6. Copy the key into `backend/.env` as `YOUTUBE_API_KEY=...`
 
-### `POST /api/scrape`
-Accepts a URL and returns scraped data or a structured stub response.
+Free quota: **10,000 units/day** — one comment fetch costs 1 unit, so this is generous for thesis demo use.
 
-**Request:**
-```json
-{ "url": "https://www.reddit.com/r/python/comments/abc123/..." }
+## Example URLs
+
+**Reddit:**
+```
+https://www.reddit.com/r/python/comments/abc123/my_post/
 ```
 
-**Reddit Response:**
-```json
-{
-  "platform": "reddit",
-  "status": "success",
-  "post": { "title": "...", "author": "...", "score": 123, ... },
-  "comments": [ { "id": "...", "author": "...", "body": "...", "depth": 0, ... } ],
-  "stats": { "total_scraped": 45, "visible": 42, "deleted_or_removed": 3 }
-}
+**YouTube:**
+```
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+https://youtu.be/dQw4w9WgXcQ
+https://www.youtube.com/shorts/VIDEO_ID
 ```
 
-**Restricted Platform Response:**
-```json
-{
-  "platform": "instagram",
-  "status": "not_implemented",
-  "reason": "Owned by Meta...",
-  "technical_detail": "...",
-  "architecture_note": "...",
-  "relevant_endpoints": ["..."]
-}
+**Facebook / Instagram** (returns architecture documentation stub):
+```
+https://www.facebook.com/somepost/123
+https://www.instagram.com/p/ABC123/
 ```
 
-### `GET /api/platforms`
-Returns support status for all platforms.
+## Architecture
 
----
+```
+frontend/ (React + Vite)
+  src/
+    App.jsx                    — main layout, routing between result views
+    components/
+      RedditResults.jsx        — renders Reddit post + threaded comments
+      YouTubeResults.jsx       — renders YouTube video + comments
+      RestrictedResults.jsx    — renders API stub documentation
+      PlatformStatus.jsx       — sidebar platform support overview
+      UrlInput.jsx             — URL input with platform detection
+    hooks/useScraper.js        — fetch state management
+    utils/api.js               — API calls, platform detection helpers
 
-## Reddit Scraper Technical Notes
+backend/ (FastAPI + Python)
+  main.py                      — routes, platform detection, CORS
+  scrapers/
+    reddit.py                  — Reddit public JSON API scraper
+    youtube.py                 — YouTube Data API v3 scraper
+    platform_stubs.py          — structured stubs for Facebook/Instagram
+```
 
-- Uses `https://reddit.com/r/.../comments/.../.json` — no authentication required
-- Recursively flattens the nested comment tree (handles arbitrary depth)
-- Handles `[deleted]` / `[removed]` comments
-- Detects private/deleted posts via HTTP 403/404 responses
-- User-Agent set to comply with Reddit's API guidelines
+## Stack
 
----
-
-## How to Extend
-
-To add real X/Twitter support:
-1. Get API credentials at `developer.twitter.com` (Basic plan minimum)
-2. Implement `scrapers/twitter.py` using `GET /2/tweets/:id` with Bearer Token
-3. Wire it in `main.py` under `platform == "x"`
-
-Same pattern applies for Facebook and Instagram via Meta's Graph API.
+- **Frontend:** React 18, Vite
+- **Backend:** FastAPI, httpx, Python 3.12
+- **APIs:** Reddit public JSON (no auth), YouTube Data API v3 (free key)

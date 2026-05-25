@@ -5,25 +5,6 @@ which is useful for thesis documentation and presentation.
 """
 
 PLATFORM_INFO = {
-    "x": {
-        "name": "X (Twitter)",
-        "reason": "API access is restricted",
-        "technical_detail": (
-            "Twitter's API v2 requires a paid subscription (Basic at $100/month or higher) "
-            "to access tweet data. The free tier only allows posting. "
-            "Unofficial scraping is actively blocked via bot detection (Cloudflare, rate limiting, "
-            "login walls) and violates the Terms of Service."
-        ),
-        "architecture_note": (
-            "A full implementation would use Twitter API v2 with OAuth 2.0 Bearer Token, "
-            "calling GET /2/tweets/:id and GET /2/tweets/:id/quote_tweets for replies. "
-            "The response would be paginated using next_token cursors."
-        ),
-        "relevant_endpoints": [
-            "GET https://api.twitter.com/2/tweets/:id",
-            "GET https://api.twitter.com/2/tweets/search/recent",
-        ]
-    },
     "facebook": {
         "name": "Facebook",
         "reason": "Requires authenticated Graph API with app review",

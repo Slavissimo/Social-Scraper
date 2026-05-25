@@ -7,11 +7,11 @@ const PLATFORMS = [
     detail: 'Public JSON API',
   },
   {
-    id: 'x',
-    name: 'X (Twitter)',
-    status: 'restricted',
-    color: '#1d9bf0',
-    detail: 'Paid API only',
+    id: 'youtube',
+    name: 'YouTube',
+    status: 'supported',
+    color: '#ff0000',
+    detail: 'Data API v3 (key req.)',
   },
   {
     id: 'facebook',
