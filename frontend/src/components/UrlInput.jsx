@@ -3,7 +3,7 @@ import { detectPlatform, PLATFORM_META } from '../utils/api'
 
 const EXAMPLES = {
   reddit: 'https://www.reddit.com/r/programming/comments/abc123/example_post/',
-  x: 'https://x.com/username/status/123456789',
+  youtube: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
   facebook: 'https://www.facebook.com/photo?fbid=123456',
   instagram: 'https://www.instagram.com/p/ABC123xyz/',
 }
@@ -39,7 +39,7 @@ export function UrlInput({ onSubmit, loading }) {
             type="url"
             value={url}
             onChange={e => setUrl(e.target.value)}
-            placeholder="Paste a Reddit, X, Facebook, or Instagram post URL..."
+            placeholder="Paste a Reddit, YouTube, Facebook, or Instagram post URL..."
             style={styles.input}
             disabled={loading}
             autoFocus
