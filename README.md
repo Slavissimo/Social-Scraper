@@ -1,17 +1,77 @@
-# Social Comment Scraper
+<div align="center">
 
-Bachelor Thesis Demo — scrapes public social media comments for analysis.
+<img src="https://capsule-render.vercel.app/api?type=waving&color=3b82f6&height=200&section=header&text=Social%20Scraper&fontSize=70&fontColor=ffffff&fontAlignY=38&desc=Bachelor%20Thesis%20Demo%20%7C%20Social%20Media%20Comment%20Analysis&descAlignY=58&descColor=ffffff" />
 
-## Supported Platforms
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-saloncuk.sk/scraper-3b82f6?style=for-the-badge&logoColor=white)](https://saloncuk.sk/scraper)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 
-| Platform  | Status        | Method                          |
-|-----------|---------------|---------------------------------|
-| Reddit    | ✅ Full        | Public JSON API — no key needed |
-| YouTube   | ✅ Full        | YouTube Data API v3 — free key  |
-| Facebook  | ⚠️ Stub        | Requires Meta Graph API + App Review |
-| Instagram | ⚠️ Stub        | Requires Meta Graph API + App Review |
+</div>
 
-## Setup
+---
+
+## 🔍 O projekte
+
+**Social Scraper** je webová aplikácia vytvorená ako **bakalárska práca** na FEI TUKE. Umožňuje scrapovanie a analýzu verejných komentárov zo sociálnych sietí prostredníctvom ich oficiálnych API.
+
+---
+
+## 🌐 Podporované platformy
+
+| Platforma | Stav | Metóda |
+|-----------|------|--------|
+| ![Reddit](https://img.shields.io/badge/Reddit-FF4500?style=flat&logo=reddit&logoColor=white) **Reddit** | ✅ Plná podpora | Verejné JSON API – bez kľúča |
+| ![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=flat&logo=youtube&logoColor=white) **YouTube** | ✅ Plná podpora | YouTube Data API v3 – zadarmo |
+| ![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=flat&logo=facebook&logoColor=white) **Facebook** | ⚠️ Stub | Vyžaduje Meta Graph API + App Review |
+| ![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=flat&logo=instagram&logoColor=white) **Instagram** | ⚠️ Stub | Vyžaduje Meta Graph API + App Review |
+
+---
+
+## 🏗️ Architektúra
+
+```
+Social-Scraper/
+├── frontend/                      # React + Vite
+│   └── src/
+│       ├── App.jsx                # Hlavný layout a routing
+│       ├── components/
+│       │   ├── RedditResults.jsx  # Zobrazenie Reddit komentárov
+│       │   ├── YouTubeResults.jsx # Zobrazenie YouTube komentárov
+│       │   ├── RestrictedResults.jsx  # Stub dokumentácia
+│       │   ├── PlatformStatus.jsx # Sidebar – prehľad platforiem
+│       │   └── UrlInput.jsx       # Vstup URL s detekciou platformy
+│       ├── hooks/useScraper.js    # Správa fetch stavu
+│       └── utils/api.js           # API volania, detekcia platformy
+│
+└── backend/                       # FastAPI + Python
+    ├── main.py                    # Routes, detekcia platformy, CORS
+    └── scrapers/
+        ├── reddit.py              # Reddit public JSON API scraper
+        ├── youtube.py             # YouTube Data API v3 scraper
+        └── platform_stubs.py     # Štruktúrované stuby pre FB/IG
+```
+
+---
+
+## ⚙️ Tech Stack
+
+**Frontend**
+- [React 18](https://react.dev) + [Vite](https://vitejs.dev)
+- Detekcia platformy z URL v reálnom čase
+
+**Backend**
+- [FastAPI](https://fastapi.tiangolo.com) + [httpx](https://www.python-httpx.org)
+- Python 3.12
+- Asynchrónne HTTP požiadavky
+
+**APIs**
+- Reddit Public JSON (bez autentifikácie)
+- YouTube Data API v3 (bezplatný kľúč, 10 000 jednotiek/deň)
+
+---
+
+## 🚀 Lokálne spustenie
 
 ### Backend
 
@@ -19,12 +79,17 @@ Bachelor Thesis Demo — scrapes public social media comments for analysis.
 cd backend
 pip install -r requirements.txt
 
-# Configure YouTube API key
+# Nastav YouTube API kľúč
 cp .env.example .env
-# Edit .env and add your YOUTUBE_API_KEY
-# Get a free key at https://console.cloud.google.com/
-# → Enable "YouTube Data API v3" → Create credentials → API key
+# Uprav .env a pridaj YOUTUBE_API_KEY
+```
 
+> 🔑 **Ako získať YouTube API kľúč (zadarmo):**
+> 1. [Google Cloud Console](https://console.cloud.google.com/) → nový projekt
+> 2. APIs & Services → Library → **YouTube Data API v3** → Enable
+> 3. Credentials → Create Credentials → API key
+
+```bash
 uvicorn main:app --reload --port 8000
 ```
 
@@ -36,24 +101,15 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Otvor [http://localhost:5173](http://localhost:5173)
 
-## Getting a YouTube API Key (free)
+---
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or use an existing one)
-3. Navigate to **APIs & Services → Library**
-4. Search for **"YouTube Data API v3"** and enable it
-5. Go to **APIs & Services → Credentials → Create Credentials → API key**
-6. Copy the key into `backend/.env` as `YOUTUBE_API_KEY=...`
-
-Free quota: **10,000 units/day** — one comment fetch costs 1 unit, so this is generous for thesis demo use.
-
-## Example URLs
+## 📋 Príklady URL
 
 **Reddit:**
 ```
-https://www.reddit.com/r/python/comments/abc123/my_post/
+https://www.reddit.com/r/programming/comments/abc123/post_title/
 ```
 
 **YouTube:**
@@ -63,37 +119,31 @@ https://youtu.be/dQw4w9WgXcQ
 https://www.youtube.com/shorts/VIDEO_ID
 ```
 
-**Facebook / Instagram** (returns architecture documentation stub):
+**Facebook / Instagram** *(stub – vracia dokumentáciu architektúry)*:
 ```
 https://www.facebook.com/somepost/123
 https://www.instagram.com/p/ABC123/
 ```
 
-## Architecture
+---
 
-```
-frontend/ (React + Vite)
-  src/
-    App.jsx                    — main layout, routing between result views
-    components/
-      RedditResults.jsx        — renders Reddit post + threaded comments
-      YouTubeResults.jsx       — renders YouTube video + comments
-      RestrictedResults.jsx    — renders API stub documentation
-      PlatformStatus.jsx       — sidebar platform support overview
-      UrlInput.jsx             — URL input with platform detection
-    hooks/useScraper.js        — fetch state management
-    utils/api.js               — API calls, platform detection helpers
+## 🌐 Nasadenie
 
-backend/ (FastAPI + Python)
-  main.py                      — routes, platform detection, CORS
-  scrapers/
-    reddit.py                  — Reddit public JSON API scraper
-    youtube.py                 — YouTube Data API v3 scraper
-    platform_stubs.py          — structured stubs for Facebook/Instagram
-```
+Aplikácia je nasadená na [Render.com](https://render.com):
 
-## Stack
+| Služba | URL |
+|--------|-----|
+| Frontend | `saloncuk.sk/scraper` |
+| Backend | `social-scraper-backend-smjj.onrender.com` |
 
-- **Frontend:** React 18, Vite
-- **Backend:** FastAPI, httpx, Python 3.12
-- **APIs:** Reddit public JSON (no auth), YouTube Data API v3 (free key)
+Routing zabezpečuje **Cloudflare Worker** na doméne [saloncuk.sk](https://saloncuk.sk).
+
+---
+
+<div align="center">
+
+*Bakalárska práca – FEI TUKE · Súčasť [saloncuk.sk](https://saloncuk.sk)*
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=3b82f6&height=100&section=footer" />
+
+</div>
