@@ -2,13 +2,15 @@ const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : '/api'
 
-export async function scrapeUrl(url) {
+export async function scrapeUrl(url, pageToken = null) {
   let res
+  const body = { url }
+  if (pageToken) body.page_token = pageToken
   try {
     res = await fetch(`${API_BASE}/scrape`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(body),
     })
   } catch (e) {
     throw new Error('Could not reach the backend. Is the Python server running on port 8000?')

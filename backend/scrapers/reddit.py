@@ -26,11 +26,14 @@ def parse_reddit_url(url: str) -> Optional[str]:
     base_url = match.group(0)
     return base_url + "/.json"
 
-def flatten_comments(children: list, depth: int = 0) -> list:
+def flatten_comments(children: list, depth: int = 0) -> tuple:
     """
     Recursively flatten nested Reddit comment tree into a flat list.
+    Returns (comments, truncated_count) where truncated_count is the number
+    of comments hidden behind "load more" placeholders.
     """
     result = []
+    truncated = 0
     for child in children:
         if child.get("kind") == "t1":  # t1 = comment
             data = child["data"]
@@ -50,7 +53,8 @@ def flatten_comments(children: list, depth: int = 0) -> list:
             replies_data = data.get("replies")
             if isinstance(replies_data, dict):
                 reply_children = replies_data.get("data", {}).get("children", [])
-                nested = flatten_comments(reply_children, depth + 1)
+                nested, nested_truncated = flatten_comments(reply_children, depth + 1)
+                truncated += nested_truncated
                 comment["replies_count"] = len([r for r in nested if r["depth"] == depth + 1])
                 result.append(comment)
                 result.extend(nested)
@@ -58,10 +62,9 @@ def flatten_comments(children: list, depth: int = 0) -> list:
                 result.append(comment)
 
         elif child.get("kind") == "more":
-            # "Load more comments" placeholder — skip for simplicity
-            pass
+            truncated += child.get("data", {}).get("count", 0)
 
-    return result
+    return result, truncated
 
 async def scrape_reddit(url: str) -> dict:
     json_url = parse_reddit_url(url)
@@ -124,7 +127,7 @@ async def scrape_reddit(url: str) -> dict:
 
     # Comments (second element)
     comment_children = data[1]["data"]["children"]
-    comments = flatten_comments(comment_children)
+    comments, truncated_count = flatten_comments(comment_children)
 
     # Filter out deleted/removed
     visible_comments = [c for c in comments if not c["is_deleted"]]
@@ -138,5 +141,6 @@ async def scrape_reddit(url: str) -> dict:
             "total_scraped": len(comments),
             "visible": len(visible_comments),
             "deleted_or_removed": len(comments) - len(visible_comments),
+            "truncated_count": truncated_count,
         }
     }

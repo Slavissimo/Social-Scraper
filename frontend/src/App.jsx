@@ -7,7 +7,7 @@ import { RestrictedResults } from './components/RestrictedResults'
 import { PlatformStatus } from './components/PlatformStatus'
 
 export default function App() {
-  const { loading, data, error, scrape, reset } = useScraper()
+  const { loading, data, error, scrape, loadMore, reset } = useScraper()
   const [lastUrl, setLastUrl] = useState('')
 
   function handleSubmit(url) {
@@ -93,7 +93,11 @@ export default function App() {
                 <RedditResults data={data} />
               )}
               {data.status === 'success' && data.platform === 'youtube' && (
-                <YouTubeResults data={data} />
+                <YouTubeResults
+                  data={data}
+                  loading={loading}
+                  onLoadMore={(token) => loadMore(lastUrl, token)}
+                />
               )}
               {data.status === 'not_implemented' && (
                 <RestrictedResults data={data} />

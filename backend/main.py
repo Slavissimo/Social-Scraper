@@ -1,17 +1,29 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from scrapers.reddit import scrape_reddit
 from scrapers.youtube import scrape_youtube
 from scrapers.platform_stubs import scrape_stub
+from urllib.parse import urlparse
+from typing import Optional
 import os
-import re
 
 app = FastAPI(title="Social Comment Scraper API")
 
+# --- Rate limiting ---
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# --- CORS ---
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 app.add_middleware(
@@ -22,12 +34,43 @@ app.add_middleware(
         "http://localhost:3000",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
-class ScrapeRequest(BaseModel):
-    url: str
+# --- Security headers ---
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# --- URL allowlist (SSRF protection) ---
+ALLOWED_DOMAINS = {
+    "reddit.com", "www.reddit.com", "old.reddit.com",
+    "youtube.com", "www.youtube.com", "youtu.be",
+    "facebook.com", "www.facebook.com", "fb.com", "m.facebook.com",
+    "instagram.com", "www.instagram.com",
+}
+
+def validate_url(url: str) -> str:
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid URL format")
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="URL must use http or https")
+    domain = parsed.netloc.lower().split(":")[0]
+    if domain not in ALLOWED_DOMAINS:
+        raise HTTPException(
+            status_code=400,
+            detail="Domain not allowed. Supported platforms: Reddit, YouTube, Facebook, Instagram"
+        )
+    return url
 
 def detect_platform(url: str) -> str:
     url = url.lower()
@@ -41,16 +84,22 @@ def detect_platform(url: str) -> str:
         return "instagram"
     return "unknown"
 
+class ScrapeRequest(BaseModel):
+    url: str
+    page_token: Optional[str] = None
+
 @app.get("/")
 def root():
     return {"status": "Social Comment Scraper API is running"}
 
 @app.post("/api/scrape")
-async def scrape(request: ScrapeRequest):
-    url = request.url.strip()
+@limiter.limit("10/minute")
+async def scrape(request: Request, body: ScrapeRequest):
+    url = body.url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="URL cannot be empty")
 
+    validate_url(url)
     platform = detect_platform(url)
 
     if platform == "unknown":
@@ -62,7 +111,7 @@ async def scrape(request: ScrapeRequest):
     if platform == "reddit":
         return await scrape_reddit(url)
     elif platform == "youtube":
-        return await scrape_youtube(url)
+        return await scrape_youtube(url, page_token=body.page_token)
     else:
         return scrape_stub(platform, url)
 

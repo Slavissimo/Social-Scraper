@@ -37,7 +37,7 @@ def extract_video_id(url: str) -> Optional[str]:
     return None
 
 
-async def scrape_youtube(url: str) -> dict:
+async def scrape_youtube(url: str, page_token: Optional[str] = None) -> dict:
     api_key = os.getenv("YOUTUBE_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(
@@ -57,82 +57,88 @@ async def scrape_youtube(url: str) -> dict:
         )
 
     async with httpx.AsyncClient(timeout=15.0) as client:
-        # --- Fetch video metadata ---
-        try:
-            video_resp = await client.get(
-                f"{YOUTUBE_API_BASE}/videos",
-                params={
-                    "part": "snippet,statistics",
-                    "id": video_id,
-                    "key": api_key,
-                }
-            )
-        except httpx.RequestError as e:
-            raise HTTPException(status_code=502, detail=f"Network error fetching video: {str(e)}")
+        video = None
 
-        if video_resp.status_code == 400:
-            raise HTTPException(status_code=400, detail="Invalid YouTube API request. Check your API key.")
-        elif video_resp.status_code == 403:
-            data = video_resp.json()
-            reason = data.get("error", {}).get("message", "Forbidden")
-            raise HTTPException(
-                status_code=403,
-                detail=f"YouTube API access denied: {reason}. Your API key may be invalid or quota exhausted."
-            )
-        elif video_resp.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"YouTube API error: {video_resp.status_code}")
+        # Skip video metadata fetch on pagination requests to save API quota
+        if not page_token:
+            try:
+                video_resp = await client.get(
+                    f"{YOUTUBE_API_BASE}/videos",
+                    params={
+                        "part": "snippet,statistics",
+                        "id": video_id,
+                        "key": api_key,
+                    }
+                )
+            except httpx.RequestError as e:
+                raise HTTPException(status_code=502, detail=f"Network error fetching video: {str(e)}")
 
-        video_data = video_resp.json()
-        items = video_data.get("items", [])
-        if not items:
-            raise HTTPException(status_code=404, detail="Video not found or has been removed.")
+            if video_resp.status_code == 400:
+                raise HTTPException(status_code=400, detail="Invalid YouTube API request. Check your API key.")
+            elif video_resp.status_code == 403:
+                data = video_resp.json()
+                reason = data.get("error", {}).get("message", "Forbidden")
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"YouTube API access denied: {reason}. Your API key may be invalid or quota exhausted."
+                )
+            elif video_resp.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"YouTube API error: {video_resp.status_code}")
 
-        snippet = items[0]["snippet"]
-        stats = items[0].get("statistics", {})
+            video_data = video_resp.json()
+            items = video_data.get("items", [])
+            if not items:
+                raise HTTPException(status_code=404, detail="Video not found or has been removed.")
 
-        # Check if comments are disabled
-        comments_disabled = stats.get("commentCount") is None
+            snippet = items[0]["snippet"]
+            stats = items[0].get("statistics", {})
 
-        video = {
-            "id": video_id,
-            "title": snippet.get("title", ""),
-            "channel": snippet.get("channelTitle", ""),
-            "published_at": snippet.get("publishedAt", ""),
-            "description": snippet.get("description", "")[:500],  # truncate long descriptions
-            "view_count": int(stats.get("viewCount", 0)),
-            "like_count": int(stats.get("likeCount", 0)) if stats.get("likeCount") else None,
-            "comment_count": int(stats.get("commentCount", 0)) if stats.get("commentCount") else None,
-            "thumbnail": snippet.get("thumbnails", {}).get("high", {}).get("url", ""),
-            "url": f"https://www.youtube.com/watch?v={video_id}",
-            "comments_disabled": comments_disabled,
-        }
+            comments_disabled = stats.get("commentCount") is None
 
-        if comments_disabled:
-            return {
-                "platform": "youtube",
-                "status": "success",
-                "video": video,
-                "comments": [],
-                "stats": {
-                    "total_scraped": 0,
-                    "visible": 0,
-                    "deleted_or_removed": 0,
-                    "note": "Comments are disabled on this video."
-                }
+            video = {
+                "id": video_id,
+                "title": snippet.get("title", ""),
+                "channel": snippet.get("channelTitle", ""),
+                "published_at": snippet.get("publishedAt", ""),
+                "description": snippet.get("description", "")[:500],
+                "view_count": int(stats.get("viewCount", 0)),
+                "like_count": int(stats.get("likeCount", 0)) if stats.get("likeCount") else None,
+                "comment_count": int(stats.get("commentCount", 0)) if stats.get("commentCount") else None,
+                "thumbnail": snippet.get("thumbnails", {}).get("high", {}).get("url", ""),
+                "url": f"https://www.youtube.com/watch?v={video_id}",
+                "comments_disabled": comments_disabled,
             }
 
-        # --- Fetch top-level comment threads ---
+            if comments_disabled:
+                return {
+                    "platform": "youtube",
+                    "status": "success",
+                    "video": video,
+                    "comments": [],
+                    "stats": {
+                        "total_scraped": 0,
+                        "visible": 0,
+                        "deleted_or_removed": 0,
+                        "note": "Comments are disabled on this video."
+                    }
+                }
+
+        # --- Fetch comment threads (with optional pagination token) ---
+        comment_params = {
+            "part": "snippet,replies",
+            "videoId": video_id,
+            "key": api_key,
+            "maxResults": 100,
+            "order": "relevance",
+            "textFormat": "plainText",
+        }
+        if page_token:
+            comment_params["pageToken"] = page_token
+
         try:
             comments_resp = await client.get(
                 f"{YOUTUBE_API_BASE}/commentThreads",
-                params={
-                    "part": "snippet,replies",
-                    "videoId": video_id,
-                    "key": api_key,
-                    "maxResults": 100,
-                    "order": "relevance",  # or "time"
-                    "textFormat": "plainText",
-                }
+                params=comment_params,
             )
         except httpx.RequestError as e:
             raise HTTPException(status_code=502, detail=f"Network error fetching comments: {str(e)}")
@@ -141,7 +147,8 @@ async def scrape_youtube(url: str) -> dict:
             err_data = comments_resp.json()
             reason = err_data.get("error", {}).get("errors", [{}])[0].get("reason", "")
             if reason == "commentsDisabled":
-                video["comments_disabled"] = True
+                if video:
+                    video["comments_disabled"] = True
                 return {
                     "platform": "youtube",
                     "status": "success",
@@ -206,3 +213,4 @@ async def scrape_youtube(url: str) -> dict:
             "next_page_token": comments_data.get("nextPageToken"),
         }
     }
+

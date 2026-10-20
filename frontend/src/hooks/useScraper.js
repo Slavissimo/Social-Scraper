@@ -18,9 +18,27 @@ export function useScraper() {
     }
   }, [])
 
+  const loadMore = useCallback(async (url, pageToken) => {
+    setState(prev => ({ ...prev, loading: true }))
+    try {
+      const more = await scrapeUrl(url, pageToken)
+      setState(prev => ({
+        loading: false,
+        error: null,
+        data: {
+          ...prev.data,
+          comments: [...(prev.data?.comments ?? []), ...more.comments],
+          stats: more.stats,
+        },
+      }))
+    } catch (err) {
+      setState(prev => ({ ...prev, loading: false, error: err.message }))
+    }
+  }, [])
+
   const reset = useCallback(() => {
     setState({ loading: false, data: null, error: null })
   }, [])
 
-  return { ...state, scrape, reset }
+  return { ...state, scrape, loadMore, reset }
 }

@@ -1,6 +1,6 @@
 import { formatDate } from '../utils/api'
 
-export function YouTubeResults({ data }) {
+export function YouTubeResults({ data, onLoadMore, loading }) {
   const { video, comments, stats } = data
 
   return (
@@ -55,8 +55,19 @@ export function YouTubeResults({ data }) {
         </div>
       ) : (
         <div style={styles.noComments}>
-          {video.comments_disabled ? 'Comments are disabled on this video.' : 'No comments found.'}
+          {video && video.comments_disabled ? 'Comments are disabled on this video.' : 'No comments found.'}
         </div>
+      )}
+
+      {/* Load more */}
+      {stats.next_page_token && (
+        <button
+          style={{ ...styles.loadMoreBtn, opacity: loading ? 0.6 : 1 }}
+          onClick={() => onLoadMore(stats.next_page_token)}
+          disabled={loading}
+        >
+          {loading ? 'Loading...' : `Load more comments`}
+        </button>
       )}
     </div>
   )
@@ -257,5 +268,17 @@ const styles = {
     background: 'var(--bg-2)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
+  },
+  loadMoreBtn: {
+    width: '100%',
+    padding: '12px',
+    background: 'var(--bg-2)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius)',
+    color: 'var(--accent)',
+    fontFamily: 'var(--mono)',
+    fontSize: '13px',
+    cursor: 'pointer',
+    transition: 'opacity 0.15s',
   },
 }

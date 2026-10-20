@@ -116,6 +116,9 @@ export function RedditResults({ data }) {
           <Stat label="Total comments" value={post.num_comments} />
           <Stat label="Scraped" value={stats.total_scraped} color="var(--green)" />
           <Stat label="Deleted/removed" value={stats.deleted_or_removed} color="var(--red)" />
+          {stats.truncated_count > 0 && (
+            <Stat label="Not loaded" value={stats.truncated_count} color="var(--text-dimmer)" />
+          )}
         </div>
       </div>
 
@@ -143,6 +146,13 @@ export function RedditResults({ data }) {
           {exportMsg || '↓ Export JSON'}
         </button>
       </div>
+
+      {/* Truncation notice */}
+      {stats.truncated_count > 0 && (
+        <div style={styles.truncationNotice}>
+          ⚠ {stats.truncated_count} comments are collapsed behind "load more" links and were not fetched. Reddit's public API does not expose these without authentication.
+        </div>
+      )}
 
       {/* Count */}
       <div style={styles.count}>
@@ -243,6 +253,16 @@ const styles = {
     fontSize: '12px',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
+  },
+  truncationNotice: {
+    padding: '10px 14px',
+    background: 'var(--bg-2)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius)',
+    fontFamily: 'var(--mono)',
+    fontSize: '11px',
+    color: 'var(--text-dimmer)',
+    lineHeight: 1.6,
   },
   count: { color: 'var(--text-dim)', fontSize: '12px', fontFamily: 'var(--mono)' },
   commentsList: { display: 'flex', flexDirection: 'column', gap: '2px' },
